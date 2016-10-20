@@ -42,12 +42,9 @@ object Trim {
 def toStr(xs: Array[String]) = xs.mkString("", "\t", "\n")
 
 val in = args.lift(0).getOrElse(sys.exit{println("usage: indelTrimming vcfFile"); 1})
-val tableFile = s"trimmed/$in.hash"
-val recordedFile = s"trimmed/$in.trimmed.vcf"
-val exclusionFile = s"trimmed/$in.exclusion"
-val tableFw = new PrintWriter(new File(tableFile))
-val recodedFw = new PrintWriter(new File(recordedFile))
-val exclusionFw = new PrintWriter(new File(exclusionFile))
+
+val exts = Array( "hash", "trimmed.vcf", "exclusion")
+val fws @ Array(tableFw, recodedFw, exclusionFw) = exts.map(ext => new PrintWriter(new File(s"trimmed/$in.$ext")))
 
 for (line <- Source.fromFile(in).getLines) {
   if (line.startsWith("#")) {
@@ -62,7 +59,4 @@ for (line <- Source.fromFile(in).getLines) {
   }
 }
 
-tableFw.close()
-recodedFw.close()
-exclusionFw.close()
-
+fws.foreach(fw => fw.close())
