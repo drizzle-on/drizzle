@@ -11,4 +11,6 @@ export SOURCE=
   filtervariants expr -c 'v.contig == "Y" || v.contig == "MT" || v.isBiallelic == false' --remove \
   # Split multi-allelic SNPs into biallelic
   splitmulti \
+  filtervariants expr -c 'va.qc.AC > 0' --keep \
+  annotatevariants intervals -r va.isLCR -i hs37d5-LCRs.20140224.bed \
   write -o my.vds
