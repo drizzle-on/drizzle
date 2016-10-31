@@ -12,10 +12,11 @@ import fi.drizzle.core.DrizzleCore._
 import fi.drizzle.imputation.components._
 
 
-// sbt "run arg1 arg2 ... argN"  // args: current/working dir, dataPath, ...
+// sbt "run arg1 arg2 ... argN"  
+// args: current/working dir, dataPath, ...
 object Network extends App {
 
-  val dataPath  = "/home/nunezfon/projects/sturnidae/drizzle-pipeline/data"
+  val dataPath  = "/data/"
   val inRef   	= TextFile(filename = s"$dataPath/ref.vcf", ci = "")
   val inSamples = TextFile(filename = s"$dataPath/samples.vcf", ci = "")
 
