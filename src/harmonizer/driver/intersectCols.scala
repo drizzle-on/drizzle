@@ -23,7 +23,7 @@ case class IntersectCols(inCSV1: TextFile, cols1: List[Int], inCSV2: TextFile, c
     val out = TextFile("out.vcf", ci)
     val fw = new PrintWriter(new File(out.path))
 
-    val set1 = Source.fromFile(inCSV.path1).getLines.foreach { line => 
+    val set1 = Source.fromFile(inCSV1.path).getLines.foreach { line => 
     	val xs = line.split("\t")
     	// XXX cols1.map(xs)
     }

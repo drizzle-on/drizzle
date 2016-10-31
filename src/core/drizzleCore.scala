@@ -67,7 +67,6 @@ object DrizzleCore {
 case class TextFile(filename: String, ci: Symbol) extends CFile {
   def write(res: String, append: Boolean = false): TextFile = {
     writeFile(res.toString)(append)
-    writeStatus()
     println(s"$ci => $res")
     this
   }
