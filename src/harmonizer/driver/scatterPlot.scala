@@ -12,7 +12,7 @@ import fi.drizzle.core.DrizzleCore._
 
 
 /**
-* Extract chromosomes for a given VCF file.
+* Scatter plot given two columns.
 */
 case class ScatterPlot(inVcf: TextFile) {
 
