@@ -12,7 +12,7 @@ import fi.drizzle.core.DrizzleCore._
 
 
 /**
-* Extract chromosomes for a given VCF file.
+* Invoke Hail to produce variant QC.
 */
 case class VariantQC(inVcf: TextFile) {
 
