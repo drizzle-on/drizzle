@@ -46,8 +46,9 @@ trait CFile {
 
 object DrizzleCore {
 
-  implicit def str2Sym(s: String):   Symbol    = Symbol(s)
-  implicit def sym2Str(sym: Symbol): String    = sym.name
+  implicit def str2Sym(s: String): Symbol       = Symbol(s)
+  implicit def sym2Str(sym: Symbol): String     = sym.name
+  implicit def cfile2path(cFile: CFile): String = cFile.path
   
   implicit class Interp (ctx: StringContext) {
     def bash(args:String*): Int = {
