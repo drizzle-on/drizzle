@@ -12,15 +12,16 @@ import fi.drizzle.core.DrizzleCore._
 import fi.drizzle.imputation.components._
 
 
-// sbt "run arg1 arg2 ... argN"  
-// args: current/working dir, dataPath, ...
-object Network extends App {
 
-  val dataPath  = "/data/"
-  val inRef   	= TextFile(filename = s"$dataPath/ref.vcf", ci = "")
-  val inSamples = TextFile(filename = s"$dataPath/samples.vcf", ci = "")
+object Harmonizer extends App {
 
-  val xs = Array((inRef, 'afRef), (inSamples, 'afSamples)).par.map { case(data, ci) => VariantQC(data)(ci) }
-  val ys = xs.map { inCSV => ExtractCols(inCSV, List(0,1,6))(inCSV.ci + "_cols") }
-  
+  val dataPath  = "/home/nunezfon/projects/data/"
+  val ref       = TextFile(filename = s"$dataPath/${args(0)}", ci = "")
+  val samples   = TextFile(filename = s"$dataPath/${args(1)}", ci = "")
+  val width     = args(2).toInt
+
+  println(s"ref: $ref  samples: $samples")
+  LD(samples, ref, width)('ld)
+
 }
+
