@@ -15,9 +15,8 @@ import fi.drizzle.imputation.components._
 
 object Harmonizer extends App {
 
-  val dataPath  = "/home/nunezfon/projects/data/"
-  val ref       = TextFile(filename = s"$dataPath/${args(0)}", ci = "")
-  val samples   = TextFile(filename = s"$dataPath/${args(1)}", ci = "")
+  val ref       = TextFile(filename = args(0), ci = "")
+  val samples   = TextFile(filename = args(1), ci = "")
   val width     = args(2).toInt
 
   println(s"ref: $ref  samples: $samples")
