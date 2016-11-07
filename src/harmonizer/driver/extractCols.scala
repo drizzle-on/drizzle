@@ -19,7 +19,7 @@ case class ExtractCols(inCSV: TextFile, cols: List[Int]) {
 
   def apply(ci: Symbol): TextFile = {
   
-    println(s"running $ci (ExtractCols)...")
+    println(s"running $ci (ExtractCols:TextFile)...")
 
     val out = TextFile("out.vcf", ci)
     val fw = new PrintWriter(new File(out.path))
