@@ -60,7 +60,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
     val positions = assocMap.keySet.toArray.sorted
     val positionsMap = positions.zipWithIndex.toMap
 
-    metVariants.map { mv => 
+    metVariants.par.map { mv => 
       val i = positionsMap(mv)
       val flankingRegion = positions.slice(i-width/2, i) ++ positions.slice(i+1, i+width/2+1)
       val centralVarLD = assocMap(mv)
