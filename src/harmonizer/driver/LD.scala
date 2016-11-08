@@ -80,14 +80,14 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
 
   def corr(vec1: Array[Double], vec2: Array[Double]): Double = {
-    val zs = vec1.zipAll(vec2, 0D, 0D) // Fill up shorter vector with 0D's.
-    val xsMean = vec1.sum / zs.size   //vec1.size
-    val ysMean = vec2.sum / zs.size   //vec2.size
+    val zs = vec1.zip(vec2)
+    val xsMean = vec1.sum / zs.size 
+    val ysMean = vec2.sum / zs.size 
 
     val a = zs.map { case (x,y) => (x-xsMean) * (y-ysMean) }.sum
     val (b1, b2) = zs.map { case (x,y) => ( math.pow(x-xsMean,2), math.pow(y-ysMean,2)) }.unzip
     
-    a / math.sqrt(b1.sum * b2.sum)
+    a / (math.sqrt(b1.sum) * math.sqrt(b2.sum))
   }
 
   // Hausdorff distance (set similarity up to given metric); increase sets to disprove.
