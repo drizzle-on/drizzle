@@ -15,9 +15,7 @@ import fi.drizzle.core.DrizzleCore._
 
 case class VariantLD(ref: String, alt: String, genotypes: Array[Char]) {
 
-  val nonAmbiguous = Set ( ("A","T"), ("T", "A"), ("C", "G"), ("G", "C") )
-
-  def isMultiallelic(alt: String) = alt.exists(_ == ',')  // alt contains comma
+  val joint = ref+alt
 
   def nBits(ch: Char): Int = Integer.bitCount(ch.toInt)
 
@@ -100,20 +98,31 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
   def apply(ci: Symbol): TextFile = {
   
-    println(s"${now()} :: running $ci (LD)... reading input...")
+    println(s"${now()} :: running $ci (LD)...")
+    println(s"${now()} :: reading input...")
 
-    //val (nRefIndivs, refGTs)         = read2VariantLD(ref)
-    //val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
+    // val (nRefIndivs, refGTs)         = read2VariantLD(ref)
+    // val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
     val xs = Array(ref, samples).par.map(read2VariantLD).toList
     val (nRefIndivs, refGTs)         = xs.head
     val (nSamplesIndivs, samplesGTs) = xs.last
 
-    println(s"${now()} :: getting LD vectors in flanking regions...")
+    println(s"${now()} :: estimating LD coeffs over flanking regions...")
 
-    val metVariants: Array[(Byte,Int)] = (refGTs.keySet intersect samplesGTs.keySet).toArray.sorted
+    val metVariants: Array[(Byte,Int)] = {
+      val iSet = (refGTs.keySet intersect samplesGTs.keySet)
+      iSet.filter { case k => (refGTs(k).joint, samplesGTs(k).joint) match {
+          case ("AT", "TA") | ("TA", "AT") => true
+          case ("CG", "GC") | ("GC", "CG") => true
+          case _ => false
+        } 
+      }.toArray.sorted
+    }
     
     val refLDs     = regionLDs(metVariants, refGTs, nRefIndivs, width)
     val samplesLDs = regionLDs(metVariants, samplesGTs, nSamplesIndivs, width)
+
+    println(s"${now()} :: estimating Pearson correlation and Hausdorff distance...")
 
     refLDs.toSeq.zip(samplesLDs.toSeq).foreach { case ((kRef,xs), (kSam,ys)) => 
       val r = corr(xs, ys).toString.take(5).mkString
