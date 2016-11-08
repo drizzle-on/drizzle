@@ -125,10 +125,15 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
     println(s"${now()} :: estimating Pearson correlation and Hausdorff distance...")
 
-    refLDs.toSeq.zip(samplesLDs.toSeq).foreach { case ((kRef,xs), (kSam,ys)) => 
-      val r = corr(xs, ys).toString.take(5).mkString
-      val h = hd(xs, ys, euclidean _).toString.take(5).mkString
-      println(s"$kRef r=$r   hd=$h")
+    val res = 
+      refLDs.toSeq.zip(samplesLDs.toSeq).map { case ((kRef,xs), (kSam,ys)) => 
+        val r = corr(xs, ys)
+        val h = hd(xs, ys, euclidean _) //.toString.take(5).mkString
+        (kRef, r, h)
+      }.toList
+
+    res.sortBy( t => (t._3, -t._2) ).foreach { case(kRef, r, h) => 
+      println(s"$kRef   r=${r.toString.take(5).mkString}   hd=${h.toString.take(5).mkString}") 
     }
 
     TextFile("outLD.vcf", ci)
