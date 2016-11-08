@@ -80,6 +80,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
 
   def corr(vec1: Array[Double], vec2: Array[Double]): Double = {
+    // XXX filter LD's by threshold
     val zs = vec1.zip(vec2)
     val xsMean = vec1.sum / zs.size 
     val ysMean = vec2.sum / zs.size 
@@ -93,7 +94,9 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
   // Hausdorff distance (set similarity up to given metric); increase sets to disprove.
   def euclidean(x: Double, y: Double) = math.abs(x-y)
 
-  def hd(xs: Array[Double], ys: Array[Double], d: (Double,Double) => Double): Double = xs.map(x => ys.map(y => d(x,y)).min).max
+  // Symmetric Hausdorff.
+  def hd(xs: Array[Double], ys: Array[Double], d: (Double,Double) => Double): Double = 
+    Seq(xs.map(x => ys.map(y => d(x,y)).min).max, ys.map(x => xs.map(y => d(x,y)).min).max)
 
   def now() = Calendar.getInstance().getTime
 
@@ -119,6 +122,8 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
         } 
       }.toArray.sorted
     }
+
+    // val metVariants: Array[(Byte,Int)] = (refGTs.keySet intersect samplesGTs.keySet).toArray.sorted
     
     val refLDs     = regionLDs(metVariants, refGTs, nRefIndivs, width)
     val samplesLDs = regionLDs(metVariants, samplesGTs, nSamplesIndivs, width)
