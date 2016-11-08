@@ -1,6 +1,7 @@
 package fi.drizzle.imputation.components
 
 import java.io._
+import java.util.Calendar
 
 import scala.io._
 import scala.language.{implicitConversions, postfixOps}
@@ -95,16 +96,19 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
   def hd(xs: Array[Double], ys: Array[Double], d: (Double,Double) => Double): Double = xs.map(x => ys.map(y => d(x,y)).min).max
 
+  def now() = Calendar.getInstance().getTime
 
   def apply(ci: Symbol): TextFile = {
   
-    println(s"running $ci (LD)...")
+    println(s"${now()} :: running $ci (LD)... reading input...")
 
     //val (nRefIndivs, refGTs)         = read2VariantLD(ref)
     //val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
     val xs = Array(ref, samples).par.map(read2VariantLD).toList
     val (nRefIndivs, refGTs)         = xs.head
     val (nSamplesIndivs, samplesGTs) = xs.last
+
+    println(s"${now()} :: getting LD vectors in flanking regions...")
 
     val metVariants: Array[(Byte,Int)] = (refGTs.keySet intersect samplesGTs.keySet).toArray.sorted
     
