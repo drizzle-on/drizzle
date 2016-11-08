@@ -12,7 +12,11 @@ import fi.drizzle.core.Config._
 import fi.drizzle.core.DrizzleCore._
 
 
-case class VariantLD(genotypes: Array[Char]) {
+case class VariantLD(ref: String, alt: String, genotypes: Array[Char]) {
+
+  val nonAmbiguous = Set ( ("A","T"), ("T", "A"), ("C", "G"), ("G", "C") )
+
+  def isMultiallelic(alt: String) = alt.exists(_ == ',')  // alt contains comma
 
   def nBits(ch: Char): Int = Integer.bitCount(ch.toInt)
 
@@ -35,30 +39,24 @@ case class VariantLD(genotypes: Array[Char]) {
 // Upper and lower flanking windows total summed length.
 case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
-  val nonAmbiguous = Set ( ("A","T"), ("T", "A"), ("C", "G"), ("G", "C") )
-
-  def isMultiallelic(alt: String) = alt.exists(_ == ',')  // alt contains comma
-
   def read2VariantLD(in: TextFile): (Int, Map[(Byte,Int), VariantLD]) = {
 
     val nIndivs = Source.fromFile(in).getLines.dropWhile(!_.startsWith("#CHROM")).take(1).toArray.head.split("\t").drop(9).size
     
     val assocMap = {
-      Source.fromFile(in).getLines.dropWhile(_.startsWith("#")).flatMap { line =>
+      Source.fromFile(in).getLines.dropWhile(_.startsWith("#")).map { line =>
         val xs    = line.split("\t")
         val chr   = xs(0).toInt.toByte // XXX chrXX 
         val pos   = xs(1).toInt
         val ref   = xs(3).toUpperCase
         val alt   = xs(4).toUpperCase
 
-        if ( nonAmbiguous((ref,alt)) || isMultiallelic(alt) ) {
-          // For easing use of Integer.bitCount, VCF 0|0 (ref|ref) becomes 1|1 here.
-          val gts   = xs.drop(9).flatMap { gt => Array(gt(0), gt(2)).map(v => if (v != '0') '0' else '1') }
-          val filledGts = gts ++ Array.fill(gts.size % 16)("0")  // Char 16 bit to reduce memory use.
-          val binGts    = filledGts.grouped(16).map { g => Integer.parseInt(g.mkString, 2).toChar }.toArray
-          Some( ((chr, pos), VariantLD(binGts)) )
-        }
-        else None
+        // For easing use of Integer.bitCount, VCF 0|0 (ref|ref) becomes 1|1 here.
+        val gts   = xs.drop(9).flatMap { gt => Array(gt(0), gt(2)).map(v => if (v != '0') '0' else '1') }
+        val filledGts = gts ++ Array.fill(gts.size % 16)("0")  // Char 16 bit to reduce memory use.
+        val binGts    = filledGts.grouped(16).map { g => Integer.parseInt(g.mkString, 2).toChar }.toArray
+        ((chr, pos), VariantLD(ref, alt, binGts))
+      
       }.toMap
     }
 
@@ -92,6 +90,11 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
     a / math.sqrt(b1.sum * b2.sum)
   }
 
+  // Hausdorff distance (set similarity up to given metric); increase sets to disprove.
+  def euclidean(x: Double, y: Double) = math.abs(x-y)
+
+  def hd(xs: Array[Double], ys: Array[Double], d: (Double,Double) => Double): Double = xs.map(x => ys.map(y => d(x,y)).min).max
+
 
   def apply(ci: Symbol): TextFile = {
   
@@ -106,10 +109,9 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
     val samplesLDs = regionLDs(metVariants, samplesGTs, nSamplesIndivs, width)
 
     refLDs.toSeq.zip(samplesLDs.toSeq).foreach { case ((kRef,xs), (kSam,ys)) => 
-      val r = corr(xs, ys)
-      println(s"ref:$kRef, samples:$kSam, r=$r")
-      //println(xs.mkString("\t LDs: ", ",", ""))
-      //println(ys.mkString("\t LDs: ", ",", ""))
+      val r = corr(xs, ys).toString.take(5).mkString
+      val h = hd(xs, ys, euclidean _).toString.take(5).mkString
+      println(s"$kRef r=$r   hd=$h")
     }
 
     TextFile("outLD.vcf", ci)
