@@ -1,8 +1,9 @@
 package fi.drizzle.imputation.components
 
 import java.io._
-import java.util.Calendar
+import java.util.{Calendar,StringTokenizer}
 
+import scala.collection.JavaConverters._
 import scala.io._
 import scala.language.{implicitConversions, postfixOps}
 import scala.math._
@@ -44,7 +45,8 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
     
     val assocMap = {
       Source.fromFile(new java.io.File(in), bufferSize = Source.DefaultBufSize * 4).getLines.dropWhile(_.startsWith("#")).map { line =>
-        val xs    = line.split("\t")
+        //val xs    = line.split("\t")
+        val xs = (new StringTokenizer(line, "\t")).asScala.toArray.map(_.toString)
         val chr   = xs(0).toInt.toByte // XXX chrXX 
         val pos   = xs(1).toInt
         val ref   = xs(3).toUpperCase
