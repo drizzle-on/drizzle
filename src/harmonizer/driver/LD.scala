@@ -100,8 +100,11 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
   
     println(s"running $ci (LD)...")
 
-    val (nRefIndivs, refGTs)         = read2VariantLD(ref)
-    val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
+    //val (nRefIndivs, refGTs)         = read2VariantLD(ref)
+    //val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
+    val xs = Array(ref, samples).par.map(read2VariantLD).toList
+    val (nRefIndivs, refGTs)         = xs.head
+    val (nSamplesIndivs, samplesGTs) = xs.last
 
     val metVariants: Array[(Byte,Int)] = (refGTs.keySet intersect samplesGTs.keySet).toArray.sorted
     
