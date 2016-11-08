@@ -96,7 +96,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
   // Symmetric Hausdorff.
   def hd(xs: Array[Double], ys: Array[Double], d: (Double,Double) => Double): Double = 
-    Seq(xs.map(x => ys.map(y => d(x,y)).min).max, ys.map(x => xs.map(y => d(x,y)).min).max)
+    Seq(xs.map(x => ys.map(y => d(x,y)).min).max, ys.map(x => xs.map(y => d(x,y)).min).max).max
 
   def now() = Calendar.getInstance().getTime
 
