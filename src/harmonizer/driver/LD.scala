@@ -44,7 +44,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
     val nIndivs = Source.fromFile(in).getLines.dropWhile(!_.startsWith("#CHROM")).take(1).toArray.head.split("\t").drop(9).size
     
     val assocMap = {
-      Source.fromFile(new java.io.File(in), bufferSize = Source.DefaultBufSize * 2).getLines.dropWhile(_.startsWith("#")).map { line =>
+      Source.fromFile(new java.io.File(in), bufferSize = Source.DefaultBufSize * 8).getLines.dropWhile(_.startsWith("#")).map { line =>
         val xs    = line.split("\t")
         val chr   = xs(0).toInt.toByte // XXX chrXX 
         val pos   = xs(1).toInt
