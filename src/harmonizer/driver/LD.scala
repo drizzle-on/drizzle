@@ -44,7 +44,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
     val nIndivs = Source.fromFile(in).getLines.dropWhile(!_.startsWith("#CHROM")).take(1).toArray.head.split("\t").drop(9).size
     
     val assocMap = {
-      Source.fromFile(new java.io.File(in), bufferSize = Source.DefaultBufSize * 8).getLines.dropWhile(_.startsWith("#")).map { line =>
+      Source.fromFile(new java.io.File(in), bufferSize = Source.DefaultBufSize * 2).getLines.dropWhile(_.startsWith("#")).map { line =>
         val xs    = line.split("\t")
         val chr   = xs(0).toInt.toByte // XXX chrXX 
         val pos   = xs(1).toInt
@@ -72,7 +72,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
     metVariants.par.map { mv => 
       val i = positionsMap(mv)
-      val flankingRegion = positions.slice(i-width/2, i) ++ positions.slice(i+1, i+width/2+1)
+      val flankingRegion = positions.slice(i-width, i) ++ positions.slice(i+1, i+width+1)
       val centralVarLD = assocMap(mv)
 
       (mv, flankingRegion.map { fr => ((fr._1, fr._2, assocMap(fr).joint), centralVarLD.rCoeff(assocMap(fr), 2*nIndivs)) }.filter(_._2 >= 0.3).toMap )
@@ -82,7 +82,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
   def corr(vec1: Array[Double], vec2: Array[Double]): Double = {
     println(s"""vec1: ${vec1.map(_.toString.take(5).mkString).mkString(" ")}""")
-    println(s"""vec2: ${vec2.map(_.toString.take(5).mkString).mkString(" "})""")
+    println(s"""vec2: ${vec2.map(_.toString.take(5).mkString).mkString(" ")})""")
     val zs = vec1.zip(vec2)
     val xsMean = vec1.sum / zs.size 
     val ysMean = vec2.sum / zs.size 
@@ -107,7 +107,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
     println(s"${now()} :: running $ci (LD)...")
     
     println(s"${now()} :: reading ref...")
-    val (nRefIndivs, refGTs)         = read2VariantLD(ref)
+    val (nRefIndivs, refGTs) = read2VariantLD(ref)
 
     println(s"${now()} :: reading study...")
     val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
@@ -138,7 +138,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
       val (xs,ys) = overlapKeys.map { k => (refFrMap(k), studyFrMap(k)) }.unzip
       val r = corr(xs.toArray, ys.toArray)
       (samplesGTs(mv), r)
-    }
+    }.filter(!_._2.isNaN).sortBy(_._2)
 
     aligned.foreach { case(variant, r) => println(s"${variant.snp}, r=${r.toString.take(5).mkString}") }
 
