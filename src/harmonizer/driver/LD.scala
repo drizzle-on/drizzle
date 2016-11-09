@@ -14,7 +14,7 @@ import fi.drizzle.core.Config._
 import fi.drizzle.core.DrizzleCore._
 
 
-case class VariantLD(ref: String, alt: String, genotypes: Array[Char]) {
+case class VariantLD(ref: String, alt: String, snp: String, genotypes: Array[Char]) {
 
   val joint = ref+alt
 
@@ -48,6 +48,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
         val xs    = line.split("\t")
         val chr   = xs(0).toInt.toByte // XXX chrXX 
         val pos   = xs(1).toInt
+        val snp   = xs(2)
         val ref   = xs(3).toUpperCase
         val alt   = xs(4).toUpperCase
 
@@ -55,7 +56,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
         val gts   = xs.drop(9).flatMap { gt => Array(gt(0), gt(2)).map(v => if (v != '0') '0' else '1') }
         val filledGts = gts ++ Array.fill(gts.size % 16)("0")  // Char 16 bit to reduce memory use.
         val binGts    = filledGts.grouped(16).map { g => Integer.parseInt(g.mkString, 2).toChar }.toArray
-        ((chr, pos), VariantLD(ref, alt, binGts))
+        ((chr, pos), VariantLD(ref, alt, snp, binGts))
       
       }.toMap
     }
@@ -74,8 +75,8 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
       val flankingRegion = positions.slice(i-width/2, i) ++ positions.slice(i+1, i+width/2+1)
       val centralVarLD = assocMap(mv)
 
-      (mv, flankingRegion.map { fr => centralVarLD.rCoeff(assocMap(fr), 2*nIndivs) })
-    }
+      (mv, flankingRegion.map { fr => ((fr._1, fr._2, assocMap(fr).joint), centralVarLD.rCoeff(assocMap(fr), 2*nIndivs)) }.filter(_._2 >= 0.3).toMap )
+    }.toMap
   }
 
 
@@ -123,24 +124,26 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
       }.toArray.sorted
     }
 
-    // val metVariants: Array[(Byte,Int)] = (refGTs.keySet intersect samplesGTs.keySet).toArray.sorted
-    
     val refLDs     = regionLDs(metVariants, refGTs, nRefIndivs, width)
     val samplesLDs = regionLDs(metVariants, samplesGTs, nSamplesIndivs, width)
 
-    println(s"${now()} :: estimating Pearson correlation and Hausdorff distance...")
+    println(s"${now()} :: estimating Pearson correlation...")
 
-    val res = 
-      refLDs.toSeq.zip(samplesLDs.toSeq).map { case ((kRef,xs), (kSam,ys)) => 
-        val r = corr(xs, ys)
-        val h = hd(xs, ys, euclidean _) //.toString.take(5).mkString
-        (kRef, r, h)
-      }.toList
+    val aligned = metVariants.map { mv =>  
+      val refFrMap   = refLDs(mv)
+      val studyFrMap = samplesLDs(mv)
 
-    res.sortBy( t => (t._3, -t._2) ).foreach { case(kRef, r, h) => 
-      println(s"$kRef   r=${r.toString.take(5).mkString}   hd=${h.toString.take(5).mkString}") 
+      val overlapKeys = (refFrMap.keySet intersect studyFrMap.keySet).toArray.sorted
+      val (xs,ys) = overlapKeys.map { k => (refFrMap(k), studyFrMap(k)) }.unzip
+      val r = corr(xs.toArray, ys.toArray)
+      (samplesGTs(mv), r)
     }
 
+    aligned.foreach { case(variant, r) => println(s"${variant.snp}, r=${r.toString.take(5).mkString}") }
+/*
+    val res = refLDs.toSeq.zip(samplesLDs.toSeq).map { case ((kRef,xs), (kSam,ys)) =>  (kRef, corr(xs, ys)) }.toList
+    res.sortBy( t => (t._3, -t._2) ).foreach { case(kRef, r, h) => println(s"$kRef   r=${r.toString.take(5).mkString}   hd=${h.toString.take(5).mkString}") }
+*/
     TextFile("outLD.vcf", ci)
   }
 
