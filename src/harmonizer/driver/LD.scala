@@ -81,7 +81,8 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
 
   def corr(vec1: Array[Double], vec2: Array[Double]): Double = {
-    // XXX filter LD's by threshold
+    println(s"""vec1: ${vec1.map(_.toString.take(5).mkString).mkString(" ")}""")
+    println(s"""vec2: ${vec2.map(_.toString.take(5).mkString).mkString(" "})""")
     val zs = vec1.zip(vec2)
     val xsMean = vec1.sum / zs.size 
     val ysMean = vec2.sum / zs.size 
@@ -104,13 +105,13 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
   def apply(ci: Symbol): TextFile = {
   
     println(s"${now()} :: running $ci (LD)...")
-    println(s"${now()} :: reading input...")
+    
+    println(s"${now()} :: reading ref...")
+    val (nRefIndivs, refGTs)         = read2VariantLD(ref)
 
-    // val (nRefIndivs, refGTs)         = read2VariantLD(ref)
-    // val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
-    val xs = Array(ref, samples).par.map(read2VariantLD).toList
-    val (nRefIndivs, refGTs)         = xs.head
-    val (nSamplesIndivs, samplesGTs) = xs.last
+    println(s"${now()} :: reading study...")
+    val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
+
 
     println(s"${now()} :: estimating LD coeffs over flanking regions...")
 
@@ -140,10 +141,7 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
     }
 
     aligned.foreach { case(variant, r) => println(s"${variant.snp}, r=${r.toString.take(5).mkString}") }
-/*
-    val res = refLDs.toSeq.zip(samplesLDs.toSeq).map { case ((kRef,xs), (kSam,ys)) =>  (kRef, corr(xs, ys)) }.toList
-    res.sortBy( t => (t._3, -t._2) ).foreach { case(kRef, r, h) => println(s"$kRef   r=${r.toString.take(5).mkString}   hd=${h.toString.take(5).mkString}") }
-*/
+
     TextFile("outLD.vcf", ci)
   }
 
