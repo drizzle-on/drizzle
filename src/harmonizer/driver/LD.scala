@@ -14,7 +14,7 @@ import fi.drizzle.core.Config._
 import fi.drizzle.core.DrizzleCore._
 
 
-case class VariantLD(ref: String, alt: String, snp: String, genotypes: Array[Char]) {
+case class VariantLD(ref: String, alt: String, snp: String, maf: Double, genotypes: Array[Char]) {
 
   val joint = ref+alt
 
@@ -54,9 +54,10 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
         // For easing use of Integer.bitCount, VCF 0|0 (ref|ref) becomes 1|1 here.
         val gts   = xs.drop(9).flatMap { gt => Array(gt(0), gt(2)).map(v => if (v != '0') '0' else '1') }
-        val filledGts = gts ++ Array.fill(gts.size % 16)("0")  // Char 16 bit to reduce memory use.
+        val maf   = gts.groupBy(identity).map { case(k,v) => v.size }.min / gts.size.toDouble  // XXX note missing genotypes
+        val filledGts = gts ++ Array.fill(gts.size % 16)('0')  // Char 16 bit to reduce memory use.
         val binGts    = filledGts.grouped(16).map { g => Integer.parseInt(g.mkString, 2).toChar }.toArray
-        ((chr, pos), VariantLD(ref, alt, snp, binGts))
+        ((chr, pos), VariantLD(ref, alt, snp, maf, binGts))
       
       }.toMap
     }
@@ -81,8 +82,6 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
 
   def corr(vec1: Array[Double], vec2: Array[Double]): Double = {
-    println(s"""vec1: ${vec1.map(_.toString.take(5).mkString).mkString(" ")}""")
-    println(s"""vec2: ${vec2.map(_.toString.take(5).mkString).mkString(" ")})""")
     val zs = vec1.zip(vec2)
     val xsMean = vec1.sum / zs.size 
     val ysMean = vec2.sum / zs.size 
@@ -136,11 +135,19 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
 
       val overlapKeys = (refFrMap.keySet intersect studyFrMap.keySet).toArray.sorted
       val (xs,ys) = overlapKeys.map { k => (refFrMap(k), studyFrMap(k)) }.unzip
-      val r = corr(xs.toArray, ys.toArray)
-      (samplesGTs(mv), r)
-    }.filter(!_._2.isNaN).sortBy(_._2)
+      val r = corr(xs.toArray, ys.toArray)      
+      (mv, r, xs, ys)
+    }.filter(t => !t._2.isNaN && t._3.size >= 3 && t._2 <= 0).sortBy(_._2)
 
-    aligned.foreach { case(variant, r) => println(s"${variant.snp}, r=${r.toString.take(5).mkString}") }
+    aligned.foreach { case(mv, r, xs, ys) => 
+      println(s"${samplesGTs(mv).snp}, r=$r, refMAF=${refGTs(mv).maf} \t studyMAF=${samplesGTs(mv).maf}") 
+      //println(xs.mkString(","))
+      //println(ys.mkString(","))
+    }
+
+    metVariants.foreach { case mv => println(s"$mv refMAF=${refGTs(mv).maf} \t studyMAF=${samplesGTs(mv).maf}") }
+
+    println(s"${now()} :: ready.")
 
     TextFile("outLD.vcf", ci)
   }
