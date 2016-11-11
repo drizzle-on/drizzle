@@ -102,22 +102,30 @@ case class StrandAmbProfiling(refFile: TextFile, studyFile: TextFile, studyFrqFi
     val groups = metVariantMafs.map { case mv =>
       val diff = math.abs( ref(mv).maf - study(mv).maf )
       if (study(mv).maf > 0.35) mv -> 2
-      else if (ref(mv).a1 == study(mv).a1 && diff > 0.05) mv -> 2
+      else if (ref(mv).a1 == study(mv).a1 && diff > 0.05) mv -> 22
       else if (ref(mv).a1 == study(mv).a1 && diff <= 0.05) mv -> 0
-      else if (ref(mv).a1 == study(mv).a2 && diff > 0.05) mv -> 2
+      else if (ref(mv).a1 == study(mv).a2 && diff > 0.05) mv -> 222
       else if (ref(mv).a1 == study(mv).a2 && diff <= 0.05) mv -> 1
-      else mv -> 2
+      else mv -> 2222
     }
 
-    groups.foreach { case (k,v) => v match {
+    /*groups.foreach { case (k,v) => v match {
       case 0 => println(s"$k   -> ok")
       case 1 => println(s"$k   -> flip")
       case 2 => println(s"$k   -> exclude")
-    }}
+    }}*/
 
+    val res = groups.map { case (k,v) => v match {
+      case 0    => Array(k._1, k._2, study(k).snp, "strandAmb", "ok",      "ref.a1 == study.a1 && mafDiff <= 0.05, mafDiff = |ref.maf - study.maf|").mkString("\t") 
+      case 1    => Array(k._1, k._2, study(k).snp, "strandAmb", "flip",    "ref.a1 == study.a2 && mafDiff <= 0.05, mafDiff = |ref.maf - study.maf|" ).mkString("\t")
+      case 2    => Array(k._1, k._2, study(k).snp, "strandAmb", "exclude", "study.maf > 0.35" ).mkString("\t")
+      case 22   => Array(k._1, k._2, study(k).snp, "strandAmb", "exclude", "ref.a1 == study.a1 && mafDiff > 0.05, mafDiff = |ref.maf - study.maf|").mkString("\t") 
+      case 222  => Array(k._1, k._2, study(k).snp, "strandAmb", "exclude", "ref.a1 == study.a2 && mafDiff > 0.05, mafDiff = |ref.maf - study.maf|").mkString("\t") 
+      case 2222 => Array(k._1, k._2, study(k).snp, "strandAmb", "exclude", "-") 
+    }}.mkString("\n")
 
     println(s"$now() :: ready.")
 
-		TextFile("mergable.tsv", ci)
+		TextFile("mergable.tsv", ci).write(res)
 	}
 }

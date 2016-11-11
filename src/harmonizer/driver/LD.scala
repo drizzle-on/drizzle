@@ -37,7 +37,7 @@ case class VariantLD(ref: String, alt: String, snp: String, maf: Double, genotyp
 
 // Linkage disequilibrium. Input VCF files.
 // Upper and lower flanking windows total summed length.
-case class LD(samples: TextFile, ref: TextFile, width: Int) {
+case class LD(samples: TextFile, ref: TextFile, width: Int, exclList: TextFile) {
 
   def read2VariantLD(in: TextFile): (Int, Map[(Byte,Int), VariantLD]) = {
 
@@ -99,18 +99,29 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
   def hd(xs: Array[Double], ys: Array[Double], d: (Double,Double) => Double): Double = 
     Seq(xs.map(x => ys.map(y => d(x,y)).min).max, ys.map(x => xs.map(y => d(x,y)).min).max).max
 
+  
   def now() = Calendar.getInstance().getTime
+
 
   def apply(ci: Symbol): TextFile = {
   
     println(s"${now()} :: running $ci (LD)...")
+
+    println(s"${now()} :: reading exclusion list $exclList...")
+    val excl = Source.fromFile(new java.io.File(exclList), bufferSize = Source.DefaultBufSize * 2).getLines.dropWhile(_.startsWith("#")).map { line =>
+        val xs    = line.split("\t")
+        val chr   = xs(0).toInt.toByte // XXX chrXX
+        val pos   = xs(1).toInt
+        (chr,pos)
+      }.toSet
     
     println(s"${now()} :: reading ref...")
-    val (nRefIndivs, refGTs) = read2VariantLD(ref)
+    val (nRefIndivs, refGTs0) = read2VariantLD(ref)
+    val refGTs = refGTs0.filterNot { case(k,v) => excl(k) }
 
     println(s"${now()} :: reading study...")
-    val (nSamplesIndivs, samplesGTs) = read2VariantLD(samples)
-
+    val (nSamplesIndivs, samplesGTs0) = read2VariantLD(samples)
+    val samplesGTs = samplesGTs0.filterNot { case(k,v) => excl(k) }
 
     println(s"${now()} :: estimating LD coeffs over flanking regions...")
 
@@ -137,19 +148,17 @@ case class LD(samples: TextFile, ref: TextFile, width: Int) {
       val (xs,ys) = overlapKeys.map { k => (refFrMap(k), studyFrMap(k)) }.unzip
       val r = corr(xs.toArray, ys.toArray)      
       (mv, r, xs, ys)
-    }.filter(t => !t._2.isNaN && t._3.size >= 3 && t._2 <= 0).sortBy(_._2)
+    }.filter(t => !t._2.isNaN && t._3.size >= 3 && t._2 < 0).sortBy(_._2)
 
-    aligned.foreach { case(mv, r, xs, ys) => 
-      println(s"${samplesGTs(mv).snp}, r=$r, refMAF=${refGTs(mv).maf} \t studyMAF=${samplesGTs(mv).maf}") 
-      //println(xs.mkString(","))
-      //println(ys.mkString(","))
-    }
+    // aligned.foreach { case(mv, r, xs, ys) => println(s"${samplesGTs(mv).snp}, r=$r, refMAF=${refGTs(mv).maf} \t studyMAF=${samplesGTs(mv).maf}") }    
 
-    metVariants.foreach { case mv => println(s"$mv refMAF=${refGTs(mv).maf} \t studyMAF=${samplesGTs(mv).maf}") }
+    // metVariants.foreach { case mv => println(s"$mv refMAF=${refGTs(mv).maf} \t studyMAF=${samplesGTs(mv).maf}") }
 
     println(s"${now()} :: ready.")
 
-    TextFile("outLD.vcf", ci)
+    TextFile("outLD.vcf", ci).write(aligned.map { case(k@(chr,pos), r, _, _) => 
+      Array(chr, pos, refGTs(k).snp, s"LD", "flip", "r=$r").mkString("\t")
+    }.mkString("\n"))
   }
 
 }

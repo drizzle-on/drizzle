@@ -15,12 +15,12 @@ import fi.drizzle.imputation.components._
 
 object LDHarmonizer extends App {
 
-  val ref       = TextFile(filename = args(0), ci = "")
-  val study   = TextFile(filename = args(1), ci = "")
-  val width     = args(2).toInt
+  val ref   = TextFile(filename = args(0), ci = "")
+  val study = TextFile(filename = args(1), ci = "")
+  val width = args(2).toInt
 
   println(s"ref: $ref  study: $study")
-  LD(study, ref, width)('ld)
+  // LD(study, ref, width, study)('ld)
 
 }
 

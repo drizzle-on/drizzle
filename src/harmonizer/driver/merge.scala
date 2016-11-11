@@ -58,13 +58,16 @@ case class Harmonizable(refFile: TextFile, studyFile: TextFile) {
     val nonHarmonized = metVariants.filterNot { case mv => ref(mv).isHarmonized(study(mv)) }
     val nonHarmonizable = nonHarmonized.filterNot { case mv => ref(mv).isHarmonized(study(mv).complement()) }
     
-    nonHarmonizable.foreach { case k@(chr,pos) =>
+    /*nonHarmonizable.foreach { case k@(chr,pos) =>
       val variant = study(k)
       println(Array(chr, variant.snp, "0", pos, variant.a1, variant.a2).mkString("\t"))
-    }
+    }*/
 
     println(s"$now() :: ready.")
 
-		TextFile("mergable.tsv", ci)
+		TextFile("nonHarmonizable.tsv", ci).write(nonHarmonizable.map { case k@(chr,pos) => 
+      val reason = s"study a1:${study(k).a1}, a2:${study(k).a2}; ref a1:${ref(k).a1}, a2:${ref(k).a2}"
+      Array(chr, pos, study(k).snp, "merge", "excl", reason).mkString("\t") 
+    }.mkString("\n"))
 	}
 }
