@@ -66,8 +66,10 @@ case class StrandAmbProfiling(refFile: TextFile, studyFile: TextFile, studyFrqFi
         else {
           val chr = xs(idx("chr")).toInt.toByte
           val pos = xs(idx("pos")).toInt
-          val gts   = xs.drop(9).map { gt => gt(0).toString + gt(2) }.mkString.filterNot("." contains _)
-          val maf   = gts.groupBy(identity).map { case(k,v) => v.size }.min / gts.size.toDouble 
+          // val gts   = xs.drop(9).map { gt => gt(0).toString + gt(2) }.mkString.filterNot("." contains _)
+          // val maf   = gts.groupBy(identity).map { case(k,v) => v.size }.min / gts.size.toDouble 
+          val (zeroes, ones) = xs.drop(9).foldLeft( (0,0) ) { case ((z,n),s) => (z+s.take(3).count(_ == '0'), n+s.take(3).count(_ == '1')) }
+          val maf = math.min(zeroes, ones) / (zeroes + ones).toDouble
           Some((chr,pos) -> VariantMaf(snp=xs(idx("snp")), a1=a1.head.toChar, a2=a2.head.toChar, maf=maf))
         }
     }.toMap
