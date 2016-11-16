@@ -67,7 +67,6 @@ case class ScatterPlot(refFile: TextFile, studyFile: TextFile, studyFrqFile: Tex
           val chr = xs(idx("chr")).toInt.toByte
           val pos = xs(idx("pos")).toInt
           val (zeroes, ones) = xs.drop(9).foldLeft( (0,0) ) { case ((z,n),s) => (z+s.take(3).count(_ == '0'), n+s.take(3).count(_ == '1')) }
-          println(s"$chr $pos zeroes $zeroes ones $ones")
           val maf = math.min(zeroes, ones) / (zeroes + ones).toDouble
           Some((chr,pos) -> VariantMafPlot(snp=xs(idx("snp")), a1=a1.head.toChar, a2=a2.head.toChar, maf=maf))
         }
