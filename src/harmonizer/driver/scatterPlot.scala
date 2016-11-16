@@ -88,7 +88,7 @@ case class ScatterPlot(refFile: TextFile, studyFile: TextFile, studyFrqFile: Tex
     println(s"${now()} :: maf based profilinig strand ambiguous snps...")    
     val metVariantMafPlots: Array[(Byte,Int)] = (ref.keySet intersect study.keySet).toArray
 
-    val (xs,ys) = metVariantMafPlots.map { case k => (ref(k), study(k)) }.unzip
+    val (xs,ys) = metVariantMafPlots.map { case k => (ref(k), study(k)) }.filter(t => t._1.joint == t._2.joint).unzip
 
     val pyPlot = s"""
                   |import matplotlib.pyplot as plt
