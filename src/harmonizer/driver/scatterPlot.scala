@@ -11,7 +11,7 @@ import fi.drizzle.core.Config._
 import fi.drizzle.core.DrizzleCore._
 
 
-case class VariantMaf(snp: String, a1: Char, a2: Char, maf: Double) {
+case class VariantMafPlot(snp: String, a1: Char, a2: Char, maf: Double) {
 
   val joint = a2.toString+a1
 
@@ -37,7 +37,7 @@ case class ScatterPlot(refFile: TextFile, studyFile: TextFile, studyFrqFile: Tex
     }.toMap    
   }
 
-  def readPlink(in: TextFile, studyFrqFile: TextFile, idx: Map[String,Int]): Map[(Byte,Int), VariantMaf] = {    
+  def readPlink(in: TextFile, studyFrqFile: TextFile, idx: Map[String,Int]): Map[(Byte,Int), VariantMafPlot] = {    
     println(s"${now()} :: reading $in")
 
     val frq = Map("snp" -> 1, "a1" -> 2, "a2" -> 3, "maf" -> 4)
@@ -51,12 +51,12 @@ case class ScatterPlot(refFile: TextFile, studyFile: TextFile, studyFrqFile: Tex
           val chr = xs(idx("chr")).toInt.toByte
           val pos = xs(idx("pos")).toInt
           val snp=xs(idx("snp"))
-          Some( (chr,pos) -> VariantMaf(snp=snp, a1=a1.head.toChar, a2=a2.head.toChar, maf=studyMafs(snp)) )
+          Some( (chr,pos) -> VariantMafPlot(snp=snp, a1=a1.head.toChar, a2=a2.head.toChar, maf=studyMafs(snp)) )
         }
     }.toMap
   }
 
-  def readVcf(in: TextFile, idx: Map[String,Int], skip: String = "#"): Map[(Byte,Int), VariantMaf] = {    
+  def readVcf(in: TextFile, idx: Map[String,Int], skip: String = "#"): Map[(Byte,Int), VariantMafPlot] = {    
     println(s"${now()} :: reading $in")
 
     Source.fromFile(new java.io.File(in), bufferSize = Source.DefaultBufSize * 2).getLines.dropWhile(_.startsWith(skip)).flatMap { line =>
@@ -68,7 +68,7 @@ case class ScatterPlot(refFile: TextFile, studyFile: TextFile, studyFrqFile: Tex
           val pos = xs(idx("pos")).toInt
           val (zeroes, ones) = xs.drop(9).foldLeft( (0,0) ) { case ((z,n),s) => (z+s.take(3).count(_ == '0'), n+s.take(3).count(_ == '1')) }
           val maf = math.min(zeroes, ones) / (zeroes + ones).toDouble
-          Some((chr,pos) -> VariantMaf(snp=xs(idx("snp")), a1=a1.head.toChar, a2=a2.head.toChar, maf=maf))
+          Some((chr,pos) -> VariantMafPlot(snp=xs(idx("snp")), a1=a1.head.toChar, a2=a2.head.toChar, maf=maf))
         }
     }.toMap
   }
@@ -86,9 +86,9 @@ case class ScatterPlot(refFile: TextFile, studyFile: TextFile, studyFrqFile: Tex
     val ref = readVcf(refFile, vcf)
 
     println(s"${now()} :: maf based profilinig strand ambiguous snps...")    
-    val metVariantMafs: Array[(Byte,Int)] = (ref.keySet intersect study.keySet).toArray
+    val metVariantMafPlots: Array[(Byte,Int)] = (ref.keySet intersect study.keySet).toArray
 
-    val (xs,ys) = metVariantMafs.map { case k => (ref(k), study(k)) }.unzip
+    val (xs,ys) = metVariantMafPlots.map { case k => (ref(k), study(k)) }.unzip
 
     val pyPlot = s"""
                   |import matplotlib.pyplot as plt
