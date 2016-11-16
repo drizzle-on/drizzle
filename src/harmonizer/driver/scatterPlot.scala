@@ -19,7 +19,7 @@ case class VariantMaf(snp: String, a1: Char, a2: Char, maf: Double) {
 }
 
 
-case class StrandAmbProfiling(refFile: TextFile, studyFile: TextFile, studyFrqFile: TextFile) {  
+case class ScatterPlot(refFile: TextFile, studyFile: TextFile, studyFrqFile: TextFile) {  
 
   def now() = Calendar.getInstance().getTime
 
