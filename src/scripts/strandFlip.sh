@@ -1,0 +1,6 @@
+#!/bin/bash
+
+PLINK=
+REF_FILE= 
+FILE_TO_MERGE=
+TRIAL_MERGE=
